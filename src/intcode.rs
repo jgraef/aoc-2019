@@ -10,7 +10,7 @@ pub enum Error {
     #[fail(display = "Invalid opcode: {}", _0)]
     InvalidInstruction(i64),
     #[fail(display = "Invalid address: {}", _0)]
-    InvalidAddress(usize),
+    InvalidAddress(i64),
     #[fail(display = "Machine is halted")]
     Halted,
     #[fail(display = "Invalid program")]
@@ -26,6 +26,7 @@ pub enum Error {
 pub enum ParameterMode {
     Position,
     Immediate,
+    Relative,
 }
 
 impl TryFrom<u8> for ParameterMode {
@@ -35,6 +36,7 @@ impl TryFrom<u8> for ParameterMode {
         match value {
             0 => Ok(Self::Position),
             1 => Ok(Self::Immediate),
+            2 => Ok(Self::Relative),
             _ => Err(Error::InvalidParameterMode(value))
         }
     }
@@ -47,6 +49,7 @@ pub struct Machine {
     halted: bool,
     input: VecDeque<i64>,
     output: VecDeque<i64>,
+    relative_base: i64,
 }
 
 impl Machine {
@@ -58,6 +61,7 @@ impl Machine {
             halted: false,
             input: VecDeque::new(),
             output: VecDeque::new(),
+            relative_base: 0,
         }
     }
 
@@ -77,27 +81,20 @@ impl Machine {
         self.halted
     }
 
-    pub fn get_data(&self, address: usize) -> Result<i64, Error> {
-        let data = *self.memory.get(address)
-            .ok_or_else(|| Error::InvalidAddress(address))?;
-        // println!("Get {}, is {}", address, data);
-        Ok(data)
+    pub fn get_data(&self, address: usize) -> i64 {
+        self.memory.get(address)
+            .copied()
+            .unwrap_or_default()
     }
 
-    pub fn set_data(&mut self, address: usize, value: i64) -> Result<(), Error> {
-        let opcode = self.memory.get_mut(address)
-            .ok_or_else(|| Error::InvalidAddress(address))?;
-        // println!("Set {} to {}", address, value);
-        *opcode = value;
-        Ok(())
-    }
+    pub fn set_data(&mut self, address: usize, value: i64) {
+        if self.memory.len() < address + 1 {
+            self.memory.resize(address + 1, 0);
+        }
 
-    fn get_arg(&self, arg_num: usize, opcode: i64) -> Result<i64, Error> {
-        let arg = self.get_data(self.pc + 1 + arg_num)?;
-        Ok(match Self::get_param_mode(opcode, arg_num)? {
-            ParameterMode::Position => self.get_data(arg as usize)?,
-            ParameterMode::Immediate => arg
-        })
+        let ptr = self.memory.get_mut(address)
+            .expect("Expected memory location");
+        *ptr = value;
     }
 
     fn get_param_mode(mut opcode: i64, arg: usize) -> Result<ParameterMode, Error> {
@@ -108,15 +105,39 @@ impl Machine {
         ParameterMode::try_from((opcode % 10) as u8)
     }
 
-    fn set_return(&mut self, arg: usize, value: i64) -> Result<(), Error> {
-        let ptr = self.get_data(self.pc + 1 + arg)? as usize;
-        self.set_data(ptr, value)?;
+    fn get_arg(&self, arg_num: usize, opcode: i64) -> Result<i64, Error> {
+        let arg = self.get_data(self.pc + 1 + arg_num);
+        Ok(match Self::get_param_mode(opcode, arg_num)? {
+            ParameterMode::Position => {
+                let address = arg.try_into()
+                    .map_err(|_| Error::InvalidAddress(arg))?;
+                self.get_data(address)
+            },
+            ParameterMode::Immediate => arg,
+            ParameterMode::Relative => {
+                let address = arg + self.relative_base;
+                let address = address.try_into()
+                    .map_err(|_| Error::InvalidAddress(address))?;
+                self.get_data(address)
+            },
+        })
+    }
+
+    fn set_return(&mut self, arg_num: usize, value: i64, opcode: i64) -> Result<(), Error> {
+        let arg = self.get_data(self.pc + 1 + arg_num);
+        let address = match Self::get_param_mode(opcode, arg_num)? {
+            ParameterMode::Position => arg,
+            ParameterMode::Immediate => return Err(Error::InvalidInstruction(opcode)),
+            ParameterMode::Relative => arg + self.relative_base,
+        };
+        let address = address.try_into().map_err(|_| Error::InvalidAddress(address))?;
+        self.set_data(address, value);
         Ok(())
     }
 
     fn bin_op<F: FnOnce(i64, i64) -> i64>(&mut self, op: F, opcode: i64) -> Result<(), Error> {
         let r = op(self.get_arg(0, opcode)?, self.get_arg(1, opcode)?);
-        self.set_return(2, r)?;
+        self.set_return(2, r, opcode)?;
         self.pc += 4;
         Ok(())
     }
@@ -139,8 +160,7 @@ impl Machine {
             return Err(Error::Halted)
         }
 
-        let opcode = *self.memory.get(self.pc)
-            .ok_or_else(|| Error::InvalidAddress(self.pc))?;
+        let opcode = self.get_data(self.pc);
 
         //println!("Executing {:?}", opcode);
         match opcode % 100 {
@@ -149,7 +169,7 @@ impl Machine {
             3 => {
                 let input = self.input.pop_front()
                     .ok_or(Error::NoInput)?;
-                self.set_return(0, input)?;
+                self.set_return(0, input, opcode)?;
                 self.pc += 2;
             },
             4 => {
@@ -161,6 +181,10 @@ impl Machine {
             6 => self.jump_op(false, opcode)?,
             7 => self.bin_op(|a, b| if a < b { 1 } else { 0 }, opcode)?,
             8 => self.bin_op(|a, b| if a == b { 1 } else { 0 }, opcode)?,
+            9 => {
+                self.relative_base += self.get_arg(0, opcode)?;
+                self.pc += 2;
+            }
             99 => self.halted = true,
             data => return Err(Error::InvalidInstruction(data)),
         }

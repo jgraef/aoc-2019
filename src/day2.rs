@@ -12,12 +12,12 @@ pub fn input_generator(input: &str) -> Program {
 pub fn solve_part1(program: &Program) -> i64 {
     let mut machine = Machine::new(program.clone());
 
-    machine.set_data(1, 12).unwrap();
-    machine.set_data(2, 2).unwrap();
+    machine.set_data(1, 12);
+    machine.set_data(2, 2);
 
     machine.run().unwrap();
 
-    machine.get_data(0).unwrap()
+    machine.get_data(0)
 }
 
 #[aoc(day2, part2)]
@@ -26,12 +26,12 @@ pub fn solve_part2(program: &Program) -> i64 {
         for verb in 0 .. 100 {
             let mut machine = Machine::new(program.clone());
 
-            machine.set_data(1, noun).unwrap();
-            machine.set_data(2, verb).unwrap();
+            machine.set_data(1, noun);
+            machine.set_data(2, verb);
 
             machine.run().unwrap();
 
-            let result = machine.get_data(0).unwrap();
+            let result = machine.get_data(0);
             if result == 19690720 {
                 println!("Found result: {}, {}", noun, verb);
                 return 100 * noun + verb
