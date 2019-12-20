@@ -73,6 +73,10 @@ impl Machine {
         self.output.drain(..).collect()
     }
 
+    pub fn is_halted(&self) -> bool {
+        self.halted
+    }
+
     pub fn get_data(&self, address: usize) -> Result<i64, Error> {
         let data = *self.memory.get(address)
             .ok_or_else(|| Error::InvalidAddress(address))?;
