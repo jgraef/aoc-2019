@@ -9,7 +9,7 @@ pub fn input_generator(input: &str) -> Program {
 }
 
 #[aoc(day2, part1)]
-pub fn solve_part1(program: &Program) -> u64 {
+pub fn solve_part1(program: &Program) -> i64 {
     let mut machine = Machine::new(program.clone());
 
     machine.set_data(1, 12).unwrap();
@@ -21,7 +21,7 @@ pub fn solve_part1(program: &Program) -> u64 {
 }
 
 #[aoc(day2, part2)]
-pub fn solve_part2(program: &Program) -> u64 {
+pub fn solve_part2(program: &Program) -> i64 {
     for noun in 0 .. 100 {
         for verb in 0 .. 100 {
             let mut machine = Machine::new(program.clone());
