@@ -198,6 +198,20 @@ impl Machine {
         }
         Ok(())
     }
+
+    pub fn next_output(&mut self) -> Result<Option<i64>, Error> {
+        Ok(loop {
+            if self.halted {
+                break None;
+            }
+
+            self.step()?;
+
+            if let Some(output) = self.pop_output() {
+                break Some(output);
+            }
+        })
+    }
 }
 
 #[derive(Clone, Debug)]
