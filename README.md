@@ -21,3 +21,9 @@ cargo run --release --bin arcade_game --feature arcade_game
  - `J`: *auto pilot*
  - `ESC`: *exit*
 
+### Video
+
+![GIF](https://github.com/jgraef/aoc-2019/master/doc/day13_large.gif "GIF")
+
+Video: <https://github.com/jgraef/aoc-2019/master/doc/day13_large.gif>
+
