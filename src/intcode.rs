@@ -203,7 +203,9 @@ impl Machine {
                 self.relative_base += self.get_arg(0, opcode)?;
                 self.pc += 2;
             }
-            99 => self.halted = true,
+            99 => {
+                self.halted = true
+            },
             data => return Err(Error::InvalidInstruction(data)),
         }
 
@@ -220,6 +222,7 @@ impl Machine {
     pub fn next_output(&mut self) -> Result<Option<i64>, Error> {
         Ok(loop {
             if self.halted {
+                debug!("Machine is halted");
                 return Err(Error::Halted);
             }
 

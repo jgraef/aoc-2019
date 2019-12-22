@@ -1,6 +1,3 @@
-#[cfg(feature="arcade_game")]
-use crate::arcade_game;
-
 use std::convert::{TryFrom, TryInto};
 use std::collections::BTreeMap;
 use std::fmt::{self, Write};
@@ -85,12 +82,15 @@ pub enum Instruction {
 }
 
 impl Instruction {
-    pub fn is_drawing(&self) -> bool {
+    pub fn is_frame(&self) -> bool {
+        debug!("is_frame: {:?}", self);
         match self {
-            Instruction::Draw { tile: Tile::Block, .. }
+            /*Instruction::Draw { tile: Tile::Block, .. }
             | Instruction::Draw { tile: Tile::Ball, .. }
             | Instruction::Draw { tile: Tile::Paddle, .. }
-            | Instruction::Draw { tile: Tile::Wall, .. } => true,
+            | Instruction::Draw { tile: Tile::Wall, .. } => true,*/
+            //Instruction::Draw { x: 37, y: 20, .. } => true,
+            Instruction::Draw { tile: Tile::Ball, .. } => true,
             _ => false,
         }
     }
@@ -111,7 +111,7 @@ impl Instruction {
         }
     }
 
-    pub fn is_clear(&self) -> bool {
+    pub fn is_empty(&self) -> bool {
         match self {
             Instruction::Draw { tile: Tile::Empty, .. } => true,
             _ => false,
@@ -140,14 +140,29 @@ pub struct Screen {
     pub last_instruction: Option<Instruction>,
     pub score: i64,
     pub ready: bool,
+    pub paddle_x: i64,
+    pub ball_x: i64,
+    pub num_blocks: usize,
 }
 
 impl Screen {
     pub fn run_instruction(&mut self, instruction: &Instruction) {
-        //debug!("screen: instruction: {:?}", instruction);
+        debug!("screen: instruction: {:?}", instruction);
         self.last_instruction = Some(instruction.clone());
         match instruction {
             Instruction::Draw { x, y, tile } => {
+                match tile {
+                    Tile::Paddle => self.paddle_x = *x,
+                    Tile::Ball => self.ball_x = *x,
+                    Tile::Block => self.num_blocks += 1,
+                    Tile::Empty => {
+                        match self.framebuffer.get(&(*x, *y)) {
+                            Some(Tile::Block) => self.num_blocks -= 1,
+                            _ => {},
+                        }
+                    }
+                    _ => {},
+                }
                 self.framebuffer.insert((*x, *y), *tile);
             }
             Instruction::Score { score } => {
@@ -160,7 +175,15 @@ impl Screen {
 
     pub fn screen_size(&self) -> Option<(i64, i64)> {
         let (_, max) = self.framebuffer.keys().minmax().into_option()?;
+        debug!("screen size: {} x {}", max.0, max.1);
         Some((max.0 + 1, max.1 + 1))
+    }
+
+    pub fn find(&self, tile: Tile) -> Option<(i64, i64)> {
+        self.framebuffer.iter()
+            .find(|(_, other)| tile == **other)
+            .map(|(pos, _)| pos)
+            .copied()
     }
 }
 
@@ -210,20 +233,18 @@ impl Default for JoystickPosition {
 pub struct Arcade {
     pub machine: Machine,
     pub screen: Screen,
+    pub program: Program,
 }
 
 impl Arcade {
     pub fn new(program: Program) -> Self {
         let mut arcade = Self {
-            machine: Machine::new(program),
+            machine: Machine::new(program.clone()),
             screen: Screen::default(),
+            program,
         };
 
-        // Initialize joystick position
-        arcade.machine.set_contant_input(JoystickPosition::default().into());
-
-        // Make machine free
-        arcade.machine.set_data(0, 2);
+        arcade.init_machine();
 
         arcade
     }
@@ -298,17 +319,17 @@ impl Arcade {
         self.run_until(|arcade| {
             arcade.screen.last_instruction
                 .as_ref()
-                .map(|instruction| instruction.is_clear()).unwrap_or_default()
+                .map(|instruction| instruction.is_empty()).unwrap_or_default()
         })?;
         self.run_until(f)?;
         Ok(())
     }
 
     pub fn wait_frame(&mut self) -> Result<(), Error> {
-        self.run_until(|arcade| {
+        self.wait_until(|arcade| {
             arcade.screen.last_instruction
                 .as_ref()
-                .map(|instruction| instruction.is_clear())
+                .map(|instruction| instruction.is_frame())
                 .unwrap_or(false)
             })
     }
@@ -319,6 +340,30 @@ impl Arcade {
 
     pub fn set_joystick(&mut self, joystick: JoystickPosition) {
         self.machine.set_contant_input(joystick.into())
+    }
+
+    pub fn autopilot(&mut self) -> Result<(), Error> {
+        let joystick = match self.screen.ball_x.cmp(&self.screen.paddle_x) {
+            Ordering::Equal => JoystickPosition::Neutral,
+            Ordering::Less => JoystickPosition::Left,
+            Ordering::Greater => JoystickPosition::Right,
+        };
+
+        debug!("autopilot: ball_x={}, paddle_x={}, joystick={:?}", self.screen.ball_x, self.screen.paddle_x, joystick);
+
+        self.set_joystick(joystick);
+
+        Ok(())
+    }
+
+    fn init_machine(&mut self) {
+        // Initialize joystick position
+        debug!("initialize joystick");
+        self.machine.set_contant_input(JoystickPosition::default().into());
+
+        // Make machine free
+        info!("Hacking coin slot");
+        self.machine.set_data(0, 2);
     }
 }
 
@@ -333,56 +378,41 @@ pub fn input_generator(input: &str) -> Program {
 pub fn solve_part1(program: &Program) -> usize {
     let mut arcade = Arcade::new(program.clone());
 
-    arcade.run().expect("Arcade failed");
+    info!("Waiting for screen");
+    arcade.load_screen().expect("Arcade failed");
+    info!("Number of blocks: {}", arcade.screen.num_blocks);
 
-    arcade.screen.framebuffer.iter()
-        .filter(|(_, tile)| **tile == Tile::Block)
-        .count()
-}
-
-pub fn control(arcade: &mut Arcade) -> Result<(), Error> {
-    let mut paddle_x = 0;
-    let mut ball_x = 0;
-
-    arcade.wait_until(|arcade| {
-        arcade.screen.last_instruction
-            .as_ref()
-            .map(|instruction| instruction.is_ball() || instruction.is_paddle())
-            .unwrap_or(false)
-    })?;
-    
-    if let Some(instruction) = &arcade.screen.last_instruction {
-        match instruction {
-            Instruction::Draw { tile: Tile::Ball, x, .. } => {
-                ball_x = *x;
-            },
-            Instruction::Draw { tile: Tile::Paddle, x, .. } => {
-                paddle_x = *x;
-            },
-            _ => {},
-        }
-    }
-    
-    debug!("autopilot: ball_x={}, paddle_x={}", ball_x, paddle_x);
-
-    let joystick = match ball_x.cmp(&paddle_x) {
-        Ordering::Equal => JoystickPosition::Neutral,
-        Ordering::Less => JoystickPosition::Left,
-        Ordering::Greater => JoystickPosition::Right,
-    };
-
-    debug!("autopilot: joystick={:?}", joystick);
-
-    arcade.set_joystick(joystick);
-
-    Ok(())
+    arcade.screen.num_blocks
 }
 
 #[aoc(day13, part2)]
 pub fn solve_part2(program: &Program) -> i64 {
-    #[cfg(feature="arcade_game")]
-    return arcade_game::solve(program.clone(), true);
+    let mut arcade = Arcade::new(program.clone());
 
-    #[cfg(not(feature="arcade_game"))]
-    unimplemented!("Day 13 Part 2 is only supported with the feature flag `arcade_game` right now");
+    info!("Waiting for screen");
+    arcade.load_screen().expect("Arcade failed");
+
+    let mut i = 0;
+
+    let score = loop {
+        if i % 100 == 0 {
+            info!("Progress: blocks={}, score={}", arcade.screen.num_blocks, arcade.screen.score);
+        }
+
+        match arcade.step() {
+            Err(Error::Intcode(IntcodeError::Halted)) => {
+                break arcade.screen.score;
+            },
+            Err(_) => panic!("Arcade failed"),
+            _ => {},
+        }
+
+        arcade.autopilot().expect("Autopilot failed");
+
+        i += 1;
+    };
+
+    info!("Score: {}", score);
+
+    score
 }
