@@ -236,7 +236,7 @@ impl Robot {
     }
 
     fn next_instruction(&mut self, color: Color) -> Result<Option<Instruction>, Error> {
-        self.machine.push_input(color.into());
+        self.machine.push_input(i64::from(color));
         match (self.machine.next_output()?, self.machine.next_output()?) {
             (Some(output1), Some(output2)) => {
                 Ok(Some(Instruction {

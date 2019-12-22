@@ -5,9 +5,9 @@ use regex::Regex;
 use nalgebra::Vector3;
 use num_traits::Zero;
 use num::integer::lcm;
+use itertools::Itertools;
 
 use aoc_runner_derive::{aoc, aoc_generator};
-use itertools::Itertools;
 
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]

@@ -20,7 +20,9 @@ pub enum Error {
     #[fail(display = "No input available")]
     NoInput,
     #[fail(display = "Invalid argument: {}", _0)]
-    InvalidArgument(i64)
+    InvalidArgument(i64),
+    #[fail(display = "Not an integer: {}", _0)]
+    NotAnInteger(String),
 }
 
 pub enum ParameterMode {
@@ -50,6 +52,7 @@ pub struct Machine {
     input: VecDeque<i64>,
     output: VecDeque<i64>,
     relative_base: i64,
+    constant_input: Option<i64>,
 }
 
 impl Machine {
@@ -62,11 +65,20 @@ impl Machine {
             input: VecDeque::new(),
             output: VecDeque::new(),
             relative_base: 0,
+            constant_input: None,
         }
+    }
+
+    pub fn pc(&self) -> usize {
+        self.pc
     }
 
     pub fn push_input(&mut self, value: i64) {
         self.input.push_back(value);
+    }
+
+    pub fn set_contant_input(&mut self, value: i64) {
+        self.constant_input = Some(value);
     }
 
     pub fn pop_output(&mut self) -> Option<i64> {
@@ -167,9 +179,15 @@ impl Machine {
             1 => self.bin_op(|a, b| a + b, opcode)?,
             2 => self.bin_op(|a, b| a * b, opcode)?,
             3 => {
-                let input = self.input.pop_front()
-                    .ok_or(Error::NoInput)?;
-                self.set_return(0, input, opcode)?;
+                if let Some(input) = self.constant_input {
+                    self.set_return(0, input, opcode)?;
+                }
+                else {
+                    let input = self.input.pop_front()
+                        .ok_or(Error::NoInput)?;
+                    self.set_return(0, input, opcode)?;
+                }
+
                 self.pc += 2;
             },
             4 => {
@@ -202,7 +220,7 @@ impl Machine {
     pub fn next_output(&mut self) -> Result<Option<i64>, Error> {
         Ok(loop {
             if self.halted {
-                break None;
+                return Err(Error::Halted);
             }
 
             self.step()?;
@@ -223,8 +241,8 @@ impl FromStr for Program {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let program = s.split(",")
             .map(|num| {
-                num.parse::<i64>()
-                    .map_err(|_| Error::InvalidProgram)
+                num.trim().parse::<i64>()
+                    .map_err(|_| Error::NotAnInteger(num.to_owned()))
             })
             .collect::<Result<Vec<i64>, Error>>()?;
         Ok(Self(program))
