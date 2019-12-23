@@ -1,10 +1,11 @@
 use aoc_runner_derive::{aoc, aoc_generator};
 
 use crate::intcode::{Program, Machine};
-
+use crate::util;
 
 #[aoc_generator(day2)]
 pub fn input_generator(input: &str) -> Program {
+    util::init();
     input.parse().unwrap()
 }
 
@@ -33,7 +34,7 @@ pub fn solve_part2(program: &Program) -> i64 {
 
             let result = machine.get_data(0);
             if result == 19690720 {
-                println!("Found result: {}, {}", noun, verb);
+                info!("Found result: {}, {}", noun, verb);
                 return 100 * noun + verb
             }
         }

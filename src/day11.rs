@@ -1,14 +1,15 @@
 use std::convert::{TryFrom, TryInto};
 use std::fmt;
+use std::collections::HashMap;
+use std::cmp::Ordering;
 
 use aoc_runner_derive::{aoc, aoc_generator};
 use failure::Fail;
-
-use crate::intcode::{Program, Machine, Error as IntcodeError};
-use std::collections::HashMap;
-use std::cmp::Ordering;
 use itertools::Itertools;
 use core::fmt::Write;
+
+use crate::intcode::{Program, Machine, Error as IntcodeError};
+use crate::util;
 
 
 #[derive(Clone, Debug, Fail)]
@@ -251,8 +252,8 @@ impl Robot {
 
     pub fn paint_hull(&mut self, hull: &mut Hull) -> Result<(), Error> {
         while let Some(instruction) = self.next_instruction(hull.get_color(&self.position))? {
-            println!("Position: {:?}", self.position);
-            println!("Instruction: {:?}", instruction);
+            debug!("Position: {:?}", self.position);
+            debug!("Instruction: {:?}", instruction);
 
             hull.paint(&self.position, instruction.color);
             self.direction.turn(&instruction.direction);
@@ -266,6 +267,7 @@ impl Robot {
 
 #[aoc_generator(day11)]
 pub fn input_generator(input: &str) -> Program {
+    util::init();
     input.parse().unwrap()
 }
 
@@ -288,7 +290,7 @@ pub fn solve_part2(program: &Program) -> Option<u32> {
 
     robot.paint_hull(&mut hull).expect("Robot failed");
 
-    println!("Hull:\n{}", hull);
+    debug!("Hull:\n{}", hull);
 
     None
 }

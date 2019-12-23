@@ -3,6 +3,7 @@ extern crate log;
 
 use aoc_runner_derive::aoc_lib;
 
+pub mod util;
 pub mod intcode;
 #[cfg(feature="arcade_game")]
 pub mod arcade_game;

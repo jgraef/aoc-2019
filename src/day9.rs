@@ -1,9 +1,12 @@
 use aoc_runner_derive::{aoc, aoc_generator};
 
 use crate::intcode::{Program, Machine};
+use crate::util;
+
 
 #[aoc_generator(day9)]
 pub fn input_generator(input: &str) -> Program {
+    util::init();
     input.parse().unwrap()
 }
 
@@ -18,9 +21,9 @@ pub fn solve_part1(program: &Program) -> i64 {
     let outputs = machine.get_output();
 
     if outputs.len() > 1 {
-        println!("Some checks failed:");
+        debug!("Some checks failed:");
         for (i, output) in outputs.iter().enumerate() {
-            println!("Output #{}: {:?}", i, output);
+            debug!("Output #{}: {:?}", i, output);
         }
         0
     }

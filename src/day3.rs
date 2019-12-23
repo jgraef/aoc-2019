@@ -4,6 +4,8 @@ use aoc_runner_derive::{aoc, aoc_generator};
 use failure::Fail;
 use itertools::Itertools;
 
+use crate::util;
+
 
 #[derive(Clone, Debug, Fail)]
 pub enum WireError {
@@ -165,6 +167,7 @@ impl FromStr for Wire {
 
 #[aoc_generator(day3)]
 pub fn input_generator(input: &str) -> Vec<Wire> {
+    util::init();
     input.lines()
         .map(|line| line.parse::<Wire>())
         .collect::<Result<Vec<Wire>, WireError>>()
@@ -174,7 +177,7 @@ pub fn input_generator(input: &str) -> Vec<Wire> {
 #[aoc(day3, part1)]
 pub fn solve_part1(wires: &[Wire]) -> u64 {
     assert_eq!(wires.len(), 2);
-    println!("{:#?}", wires);
+    debug!("{:#?}", wires);
 
     let mut distance = None;
 
@@ -182,7 +185,7 @@ pub fn solve_part1(wires: &[Wire]) -> u64 {
         if let Some(intersection) = segment_a.intersects(segment_b) {
             let new_distance = (intersection.0.abs() + intersection.1.abs()) as u64;
 
-            println!("Intersection: {:?} (distance {})", intersection, new_distance);
+            debug!("Intersection: {:?} (distance {})", intersection, new_distance);
 
             if let Some(old_distance) = distance {
                 if new_distance < old_distance {
@@ -201,7 +204,7 @@ pub fn solve_part1(wires: &[Wire]) -> u64 {
 #[aoc(day3, part2)]
 pub fn solve_part2(wires: &[Wire]) -> u64 {
     assert_eq!(wires.len(), 2);
-    println!("{:#?}", wires);
+    debug!("{:#?}", wires);
 
     let mut length = None;
 
@@ -209,7 +212,7 @@ pub fn solve_part2(wires: &[Wire]) -> u64 {
         if let Some(intersection) = segment_a.intersects(segment_b) {
             let new_length = segment_a.length_for_point(intersection) + segment_b.length_for_point(intersection);
 
-            println!("New length: {}", new_length);
+            debug!("New length: {}", new_length);
 
             if let Some(old_length) = length {
                 if new_length < old_length {

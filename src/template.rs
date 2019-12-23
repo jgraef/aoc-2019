@@ -1,5 +1,8 @@
 use aoc_runner_derive::{aoc, aoc_generator};
 
+use crate::util;
+
+
 #[aoc_generator(dayXX)]
 pub fn input_generator(input: &str) -> () {
     unimplemented!()

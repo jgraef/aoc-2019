@@ -5,6 +5,8 @@ use std::rc::Rc;
 use aoc_runner_derive::{aoc, aoc_generator};
 use failure::Fail;
 
+use crate::util;
+
 
 #[derive(Clone, Debug, Fail)]
 pub enum Error {
@@ -112,13 +114,14 @@ impl FromStr for Orbit {
 
 #[aoc_generator(day6)]
 pub fn input_generator(input: &str) -> OrbitMap {
+    util::init();
     input.parse().unwrap()
 }
 
 #[aoc(day6, part1)]
 pub fn solve_part1(map: &OrbitMap) -> usize {
     let checksum = map.compute_checksum();
-    println!("Checksum: {}", checksum);
+    debug!("Checksum: {}", checksum);
 
     checksum
 }
@@ -127,9 +130,9 @@ pub fn solve_part1(map: &OrbitMap) -> usize {
 pub fn solve_part2(map: &OrbitMap) -> usize {
     let path = map.compute_path("YOU", "SAN");
 
-    println!("Path:");
+    debug!("Path:");
     for transfer in &path {
-        println!("{}", transfer);
+        debug!("{}", transfer);
     }
 
     path.len() - 2

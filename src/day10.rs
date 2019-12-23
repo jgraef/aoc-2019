@@ -1,11 +1,13 @@
 use std::str::FromStr;
 use std::collections::{HashMap, VecDeque};
 use std::hash::{Hasher, Hash};
+use std::cmp::Ordering;
 
 use aoc_runner_derive::{aoc, aoc_generator};
 use failure::Fail;
 use num::Integer;
-use std::cmp::Ordering;
+
+use crate::util;
 
 
 #[derive(Clone, Debug, Fail)]
@@ -205,6 +207,7 @@ impl FromStr for AsteroidMap {
 
 #[aoc_generator(day10)]
 pub fn input_generator(input: &str) -> AsteroidMap {
+    util::init();
     input.parse().unwrap()
 }
 
@@ -221,9 +224,9 @@ fn get_best_asteroid(map: &AsteroidMap) -> Option<(&Asteroid, HashMap<Ray, Vec<&
 pub fn solve_part1(map: &AsteroidMap) -> usize {
     let (asteroid, collisions) = get_best_asteroid(map).unwrap();
 
-    println!("Best location: {:?}", asteroid);
-    //println!("Collisions: {:#?}", collisions);
-    println!("Visible asteroids: {}", collisions.len());
+    debug!("Best location: {:?}", asteroid);
+    //debug!("Collisions: {:#?}", collisions);
+    debug!("Visible asteroids: {}", collisions.len());
 
     collisions.len()
 }
@@ -238,11 +241,11 @@ pub fn solve_part2(map: &AsteroidMap) -> i64 {
         let dx = kill.x - laser_station.x;
         let dy = kill.y - laser_station.y;
         let a = (dx as f64).atan2(-dy as f64).to_degrees();
-        println!("Kill #{}: {:?} - {},{} {}", i + 1, kill, dx, dy, a);
+        debug!("Kill #{}: {:?} - {},{} {}", i + 1, kill, dx, dy, a);
     }
 
     let asteroid = kills.get(199).unwrap();
-    println!("200th asteroid: {:?}", asteroid);
+    debug!("200th asteroid: {:?}", asteroid);
 
     asteroid.x * 100 + asteroid.y
 }

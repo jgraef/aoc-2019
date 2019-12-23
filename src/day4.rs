@@ -1,9 +1,13 @@
-use aoc_runner_derive::{aoc, aoc_generator};
 use std::ops::RangeInclusive;
+
+use aoc_runner_derive::{aoc, aoc_generator};
+
+use crate::util;
 
 
 #[aoc_generator(day4)]
 pub fn input_generator(input: &str) -> RangeInclusive<u64> {
+    util::init();
     let parts = input.split("-")
         .map(|s| s.parse().unwrap())
         .collect::<Vec<u64>>();
@@ -24,7 +28,7 @@ fn to_radix(mut x: u64) -> [u8; 6] {
 
 #[aoc(day4, part1)]
 pub fn solve_part1(range: &RangeInclusive<u64>) -> u64 {
-    println!("Range: {} - {}", range.start(), range.end());
+    debug!("Range: {} - {}", range.start(), range.end());
 
     let mut num_matches = 0;
 
@@ -59,7 +63,7 @@ pub fn solve_part1(range: &RangeInclusive<u64>) -> u64 {
             continue;
         }
 
-        println!("Found match: {}", num);
+        debug!("Found match: {}", num);
 
         num_matches += 1;
     }

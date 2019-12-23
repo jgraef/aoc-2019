@@ -6,8 +6,9 @@ use nalgebra::Vector3;
 use num_traits::Zero;
 use num::integer::lcm;
 use itertools::Itertools;
-
 use aoc_runner_derive::{aoc, aoc_generator};
+
+use crate::util;
 
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -239,6 +240,8 @@ impl History {
 
 #[aoc_generator(day12)]
 pub fn input_generator(input: &str) -> System {
+    util::init();
+
     let re = Regex::new(r"<x=([-+]?\d+), y=([-+]?\d+), z=([-+]?\d+)>").unwrap();
 
     let mut system = System::default();
@@ -257,10 +260,10 @@ pub fn input_generator(input: &str) -> System {
 
 fn report_system(system: &System, interval: usize) {
     if system.step % interval == 0 {
-        println!("[{:.2} %] After {} steps:", (system.step as f64) * 100.0 / 4686774924.0, system.step);
-        println!("Energy: {}", system.energy());
+        debug!("[{:.2} %] After {} steps:", (system.step as f64) * 100.0 / 4686774924.0, system.step);
+        debug!("Energy: {}", system.energy());
         for body in &system.bodies {
-            println!(
+            debug!(
                 "pos=<{:>3}, {:>3}, {:>3}>, vel=<{:>3}, {:>3}, {:>3}>, potential={:?}, kinetic={:?}",
                 body.position.x,
                 body.position.y,
@@ -272,7 +275,7 @@ fn report_system(system: &System, interval: usize) {
                 body.kinetic_energy()
             );
         }
-        println!();
+        debug!("");
     }
 }
 
@@ -280,7 +283,7 @@ fn report_system(system: &System, interval: usize) {
 pub fn solve_part1(system: &System) -> i64 {
     let mut system = system.clone();
 
-    println!("System {:#?}", system);
+    debug!("System {:#?}", system);
 
     for _ in 0 .. 1000 {
         report_system(&system, 100);
@@ -301,12 +304,12 @@ pub fn solve_part2(initial_state: &System) -> usize {
         history.insert(&system);
 
         if let Some(cycles) = history.get_complete_cycles() {
-            println!("Found complete cycle: {:#?}", cycles);
-            println!("X cycle: {}", cycles.x.n);
-            println!("Y cycle: {}", cycles.y.n);
-            println!("Z cycle: {}", cycles.z.n);
+            debug!("Found complete cycle: {:#?}", cycles);
+            debug!("X cycle: {}", cycles.x.n);
+            debug!("Y cycle: {}", cycles.y.n);
+            debug!("Z cycle: {}", cycles.z.n);
             let length = cycles.length();
-            println!("Length: {}", length);
+            debug!("Length: {}", length);
             break length;
         }
 

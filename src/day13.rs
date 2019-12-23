@@ -9,9 +9,9 @@ use std::cmp::Ordering;
 use aoc_runner_derive::{aoc, aoc_generator};
 use failure::Fail;
 use itertools::Itertools;
-use log::Level;
 
 use crate::intcode::{Machine, Program, Error as IntcodeError};
+use crate::util;
 
 
 #[derive(Clone, Debug, Fail)]
@@ -126,7 +126,7 @@ impl Instruction {
     }
 
     pub fn paddle_x(&self) -> Option<i64> {
-        println!("paddle_x: {:?}", self);
+        debug!("paddle_x: {:?}", self);
         match self {
             Instruction::Draw { tile: Tile::Paddle, x, .. } => Some(*x),
             _ => None,
@@ -144,14 +144,14 @@ pub struct Screen {
 
 impl Screen {
     pub fn run_instruction(&mut self, instruction: &Instruction) {
-        //println!("screen: instruction: {:?}", instruction);
+        //debug!("screen: instruction: {:?}", instruction);
         self.last_instruction = Some(instruction.clone());
         match instruction {
             Instruction::Draw { x, y, tile } => {
                 self.framebuffer.insert((*x, *y), *tile);
             }
             Instruction::Score { score } => {
-                println!("score: {}", score);
+                debug!("score: {}", score);
                 self.score = *score;
             }
         }
@@ -229,27 +229,27 @@ impl Arcade {
     }
 
     fn read_instruction(&mut self) -> Result<Option<Instruction>, Error> {
-        println!("read instruction");
+        debug!("read instruction");
         let a = if let Some(a) = self.machine.next_output()? {
             a
         }
         else {
             return Ok(None);
         };
-        println!("read instruction: a = {:?}", a);
+        debug!("read instruction: a = {:?}", a);
         let b = if let Some(b) = self.machine.next_output()? {
             b
         }
         else {
             return Ok(None);
         };
-        println!("read instruction: b = {:?}", b);
+        debug!("read instruction: b = {:?}", b);
         let c = if let Some(c) = self.machine.next_output()? {
             c
         } else {
             return Ok(None);
         };
-        println!("read instruction: c = {:?}", c);
+        debug!("read instruction: c = {:?}", c);
 
         let instruction = match (a, b, c) {
             (-1, 0, score) => {
@@ -270,10 +270,10 @@ impl Arcade {
     }
 
     pub fn step(&mut self) -> Result<(), Error> {
-        println!("arcade: step");
+        debug!("arcade: step");
         if let Some(instruction) = self.read_instruction()? {
             self.screen.run_instruction(&instruction);
-            println!("instruction: {:?}", instruction);
+            debug!("instruction: {:?}", instruction);
         }
         Ok(())
     }
@@ -286,9 +286,9 @@ impl Arcade {
     }
 
     pub fn run_until<F: FnMut(&mut Self) -> bool>(&mut self, mut f: F) -> Result<(), Error> {
-        println!("run_until: f() = {:?}", f(self));
+        debug!("run_until: f() = {:?}", f(self));
         while !f(self) {
-            println!("run_until: step");
+            debug!("run_until: step");
             self.step()?;
         }
         Ok(())
@@ -325,14 +325,12 @@ impl Arcade {
 
 #[aoc_generator(day13)]
 pub fn input_generator(input: &str) -> Program {
+    util::init();
     input.parse().unwrap()
 }
 
 #[aoc(day13, part1)]
 pub fn solve_part1(program: &Program) -> usize {
-    dotenv::dotenv().unwrap();
-    simple_logger::init_with_level(Level::Info).unwrap();
-
     let mut arcade = Arcade::new(program.clone());
 
     arcade.run().expect("Arcade failed");
@@ -365,7 +363,7 @@ pub fn control(arcade: &mut Arcade) -> Result<(), Error> {
         }
     }
     
-    println!("autopilot: ball_x={}, paddle_x={}", ball_x, paddle_x);
+    debug!("autopilot: ball_x={}, paddle_x={}", ball_x, paddle_x);
 
     let joystick = match ball_x.cmp(&paddle_x) {
         Ordering::Equal => JoystickPosition::Neutral,
@@ -373,7 +371,7 @@ pub fn control(arcade: &mut Arcade) -> Result<(), Error> {
         Ordering::Greater => JoystickPosition::Right,
     };
 
-    println!("autopilot: joystick={:?}", joystick);
+    debug!("autopilot: joystick={:?}", joystick);
 
     arcade.set_joystick(joystick);
 
@@ -382,9 +380,6 @@ pub fn control(arcade: &mut Arcade) -> Result<(), Error> {
 
 #[aoc(day13, part2)]
 pub fn solve_part2(program: &Program) -> i64 {
-    dotenv::dotenv().unwrap();
-    simple_logger::init_with_level(Level::Info).unwrap();
-
     #[cfg(feature="arcade_game")]
     return arcade_game::solve(program.clone(), true);
 

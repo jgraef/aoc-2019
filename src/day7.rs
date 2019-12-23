@@ -4,6 +4,8 @@ use aoc_runner_derive::{aoc, aoc_generator};
 use itertools::Itertools;
 
 use crate::intcode::{Program, Machine, Error};
+use crate::util;
+
 
 type PhaseSettings = [u8; 5];
 
@@ -49,11 +51,11 @@ impl<'p> Circuit<'p> {
         while !done {
             for i in 0 .. 5 {
                 if let Some(output) = self.run_amplifier(&mut amplifiers[i], signal)? {
-                    println!("Amplifier #{}: input={}, output={}", i, signal, output);
+                    debug!("Amplifier #{}: input={}, output={}", i, signal, output);
                     signal = output;
                 }
                 else {
-                    println!("Amplifier #{} halted", i);
+                    debug!("Amplifier #{} halted", i);
                     done = true;
                 }
             }
@@ -68,6 +70,7 @@ impl<'p> Circuit<'p> {
 
 #[aoc_generator(day7)]
 pub fn input_generator(input: &str) -> Program {
+    util::init();
     input.parse().unwrap()
 }
 
@@ -80,16 +83,16 @@ pub fn try_phase_settings(program: &Program, phase_settings_range: Range<u8>, lo
         assert_eq!(phase_settings.len(), 5);
         phase_settings.copy_from_slice(&perm);
 
-        println!("Trying phase settings {:?}", phase_settings);
+        debug!("Trying phase settings {:?}", phase_settings);
         let output = circuit.run_circuit(&phase_settings, loopback).expect("Circuit failed");
-        println!("Circuit output: {}", output);
+        debug!("Circuit output: {}", output);
         if output > best_output {
             best_output = output;
         }
-        println!();
+        debug!("");
     }
 
-    println!("Best thruster output: {}", best_output);
+    debug!("Best thruster output: {}", best_output);
 
     best_output
 }

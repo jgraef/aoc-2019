@@ -36,8 +36,8 @@ impl Game {
         let mut arcade = Arcade::new(program);
 
         arcade.load_screen().expect("Arcade failed to load screen");
-        println!("screen loaded");
-        println!("window size: {:?}", graphics::drawable_size(ctx));
+        debug!("screen loaded");
+        debug!("window size: {:?}", graphics::drawable_size(ctx));
 
         arcade.machine.set_contant_input(JoystickPosition::default().into());
 
@@ -74,14 +74,14 @@ impl Game {
             }
         }
 
-        println!("autopilot: ball_x={}, paddle_x={}", self.ball_x, self.paddle_x);
+        debug!("autopilot: ball_x={}, paddle_x={}", self.ball_x, self.paddle_x);
 
         if self.ball_x < self.paddle_x {
-            println!("autopilot: left");
+            debug!("autopilot: left");
             self.arcade.set_joystick(JoystickPosition::Left);
         }
         else if self.ball_x > self.paddle_x {
-            println!("autopilot: right");
+            debug!("autopilot: right");
             self.arcade.set_joystick(JoystickPosition::Right);
         }
         else {
@@ -92,7 +92,7 @@ impl Game {
     }
 
     fn quit(&mut self, ctx: &mut Context) {
-        println!("score: {}", self.arcade.screen.score);
+        debug!("score: {}", self.arcade.screen.score);
         ggez::event::quit(ctx);
     }
 
@@ -104,14 +104,14 @@ impl Game {
 impl EventHandler for Game {
     fn update(&mut self, ctx: &mut Context) -> GameResult<()> {
         if self.autopilot {
-            //println!("autopilot on");
+            //debug!("autopilot on");
             if let Err(Error::Intcode(IntcodeError::Halted)) = self.control() {
                 self.quit(ctx);
             }
 
         }
         else {
-            //println!("pc: {:?}", self.arcade.machine.pc());
+            //debug!("pc: {:?}", self.arcade.machine.pc());
             if !self.time_warp {
                 self.arcade.wait_frame().expect("Arcade failed");
             }
@@ -129,7 +129,7 @@ impl EventHandler for Game {
         // 36 x 19
         let screen_size = self.arcade.screen.screen_size().unwrap();
         let scale = (window_size.0 / (screen_size.0 as f32)).min(window_size.1 / (screen_size.1 as f32)) / self.tile_size;
-        //println!("window_size={:?}, screen_size={:?}, scale={}", window_size, screen_size, scale);
+        //debug!("window_size={:?}, screen_size={:?}, scale={}", window_size, screen_size, scale);
 
         if let Some((min, max)) = minmax.into_option() {
             for y in min.1 ..= max.1 {
@@ -138,7 +138,7 @@ impl EventHandler for Game {
                         .copied()
                         .unwrap_or_default();
 
-                    //println!("Rendering: {},{} {:?}", x, y, tile);
+                    //debug!("Rendering: {},{} {:?}", x, y, tile);
 
                     let sprite = self.tileset.get(&tile).unwrap();
 
@@ -162,7 +162,7 @@ impl EventHandler for Game {
     }
 
     fn key_down_event(&mut self, ctx: &mut Context, keycode: KeyCode, _keymod: KeyMods, _repeat: bool) {
-        //println!("key down: {:?}", keycode);
+        //debug!("key down: {:?}", keycode);
         match keycode {
             KeyCode::A => self.arcade.set_joystick(JoystickPosition::Left),
             KeyCode::D => self.arcade.set_joystick(JoystickPosition::Right),
@@ -173,7 +173,7 @@ impl EventHandler for Game {
             KeyCode::Escape => ggez::event::quit(ctx),
             KeyCode::LShift => {
                 if self.time_warp {
-                    //println!("timewarp: wait update");
+                    //debug!("timewarp: wait update");
                     self.arcade.wait_frame().expect("Arcade failed");
                 }
             },
@@ -182,7 +182,7 @@ impl EventHandler for Game {
     }
 
     fn key_up_event(&mut self, _ctx: &mut Context, keycode: KeyCode, _keymod: KeyMods) {
-        //println!("key up: {:?}", keycode);
+        //debug!("key up: {:?}", keycode);
         self.arcade.set_joystick(JoystickPosition::Neutral);
 
         self.keys.push_back(keycode);
@@ -202,7 +202,7 @@ pub fn solve(program: Program, autopilot: bool) -> i64 {
             panic!("ARCADE_RESOURCE_PATH not set");
         },
     };
-    println!("set path to: {}", path.display());
+    debug!("set path to: {}", path.display());
     cb = cb.add_resource_path(path);
 
     let window_mode = WindowMode::default()
@@ -218,8 +218,8 @@ pub fn solve(program: Program, autopilot: bool) -> i64 {
 
     // Run!
     match event::run(&mut ctx, &mut event_loop, &mut game) {
-        Ok(_) => println!("Exited cleanly."),
-        Err(e) => println!("Error occured: {}", e)
+        Ok(_) => debug!("Exited cleanly."),
+        Err(e) => debug!("Error occured: {}", e)
     }
 
     game.score()

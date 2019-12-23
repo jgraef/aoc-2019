@@ -1,8 +1,8 @@
 use std::str::FromStr;
-
-use failure::Fail;
 use std::convert::{TryFrom, TryInto};
 use std::collections::VecDeque;
+
+use failure::Fail;
 
 
 #[derive(Debug, Clone, Fail)]
@@ -57,7 +57,7 @@ pub struct Machine {
 
 impl Machine {
     pub fn new(program: Program) -> Machine {
-        //println!("Memory: {:?}", program);
+        //debug!("Memory: {:?}", program);
         Self {
             memory: program.0,
             pc: 0,
@@ -174,7 +174,7 @@ impl Machine {
 
         let opcode = self.get_data(self.pc);
 
-        //println!("Executing {:?}", opcode);
+        //debug!("Executing {:?}", opcode);
         match opcode % 100 {
             1 => self.bin_op(|a, b| a + b, opcode)?,
             2 => self.bin_op(|a, b| a * b, opcode)?,
